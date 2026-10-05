@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Uptime reports: anyone can submit and read; nobody can edit or delete.
+    // Contact field is optional and only shown to nobody (anonymized on the page).
+    match /uptime_reports/{reportId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(
+          ['site', 'what', 'contact', 'created_at', 'status'])
+        && request.resource.data.site is string
+        && request.resource.data.site in ['login', 'app', 'pages', 'other']
+        && request.resource.data.what is string
+        && request.resource.data.what.size() > 0
+        && request.resource.data.what.size() <= 500
+        && (!('contact' in request.resource.data)
+            || request.resource.data.contact == null
+            || (request.resource.data.contact is string
+                && request.resource.data.contact.size() <= 120))
+        && request.resource.data.status == 'open';
+      allow update, delete: if false;
+    }
+  }
+}
